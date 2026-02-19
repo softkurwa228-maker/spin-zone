@@ -1,237 +1,273 @@
-import telebot
-from telebot import types
-import sqlite3
-import random
-import datetime
-import time
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>SPIN ZONE ULTRA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-TOKEN = "ВСТАВЬ_СВОЙ_ТОКЕН"
-bot = telebot.TeleBot(TOKEN)
+<style>
+body{
+    margin:0;
+    font-family:Arial;
+    background:radial-gradient(circle at top,#1a0033,#000);
+    color:white;
+    text-align:center;
+    overflow-x:hidden;
+}
 
-conn = sqlite3.connect("spinzone.db", check_same_thread=False)
-cursor = conn.cursor()
+h1{
+    margin-top:20px;
+    font-size:32px;
+    background:linear-gradient(90deg,gold,orange);
+    -webkit-background-clip:text;
+    color:transparent;
+}
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS users(
-    user_id INTEGER PRIMARY KEY,
-    coins INTEGER,
-    xp INTEGER,
-    ref_by INTEGER,
-    last_bonus TEXT,
-    last_spin REAL,
-    spins INTEGER
-)
-""")
-conn.commit()
+.card{
+    margin:15px auto;
+    padding:15px;
+    width:90%;
+    border-radius:20px;
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(10px);
+}
 
+#slot{
+    font-size:60px;
+    margin:30px;
+    letter-spacing:15px;
+    transition:0.3s;
+}
 
-# ================= DATABASE =================
+.win{
+    animation:glow 0.7s alternate infinite;
+}
 
-def get_user(user_id):
-    cursor.execute("SELECT * FROM users WHERE user_id=?", (user_id,))
-    return cursor.fetchone()
+@keyframes glow{
+    from{ text-shadow:0 0 10px gold;}
+    to{ text-shadow:0 0 30px orange;}
+}
 
+button{
+    padding:12px 25px;
+    margin:8px;
+    font-size:18px;
+    border:none;
+    border-radius:30px;
+    background:linear-gradient(45deg,gold,orange);
+    color:black;
+    font-weight:bold;
+    cursor:pointer;
+}
 
-def create_user(user_id, ref=None):
-    cursor.execute(
-        "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (user_id, 1000, 0, ref, "", 0, 0)
-    )
-    conn.commit()
+#caseAnimation{
+    font-size:40px;
+    height:60px;
+    overflow:hidden;
+}
 
+#wheel{
+    width:200px;
+    height:200px;
+    border-radius:50%;
+    border:8px solid gold;
+    margin:20px auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    transition:transform 4s cubic-bezier(.17,.67,.83,.67);
+}
+</style>
+</head>
 
-def update_user(user_id, coins=None, xp=None, last_bonus=None, last_spin=None, spins=None):
-    user = get_user(user_id)
+<body>
 
-    coins = coins if coins is not None else user[1]
-    xp = xp if xp is not None else user[2]
-    last_bonus = last_bonus if last_bonus is not None else user[4]
-    last_spin = last_spin if last_spin is not None else user[5]
-    spins = spins if spins is not None else user[6]
+<h1>🎰 SPIN ZONE ULTRA</h1>
 
-    cursor.execute("""
-        UPDATE users 
-        SET coins=?, xp=?, last_bonus=?, last_spin=?, spins=? 
-        WHERE user_id=?
-    """, (coins, xp, last_bonus, last_spin, spins, user_id))
-    conn.commit()
+<div class="card">
+💰 Баланс: <span id="coins"></span><br>
+🏆 Уровень: <span id="level"></span>
+</div>
 
+<!-- SLOT -->
+<div class="card">
+<h2>🎰 SLOT</h2>
+<div id="slot">🎰 🎰 🎰</div>
+<select id="bet">
+<option value="100">100</option>
+<option value="500">500</option>
+<option value="1000">1000</option>
+</select>
+<br>
+<button onclick="spin()">SPIN</button>
+</div>
 
-# ================= UI =================
+<!-- CASE -->
+<div class="card">
+<h2>🎁 CASE</h2>
+<div id="caseAnimation">🎁</div>
+<button onclick="openCase()">OPEN (300)</button>
+</div>
 
-def main_menu():
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    markup.add(
-        types.InlineKeyboardButton("🎰 Играть", callback_data="spin"),
-        types.InlineKeyboardButton("🎁 Бонус", callback_data="bonus"),
-        types.InlineKeyboardButton("👤 Профиль", callback_data="profile"),
-        types.InlineKeyboardButton("🏆 Топ", callback_data="top"),
-    )
-    return markup
+<!-- WHEEL -->
+<div class="card">
+<h2>🎡 WHEEL</h2>
+<div id="wheel">SPIN</div>
+<button onclick="spinWheel()">SPIN WHEEL</button>
+</div>
 
+<script>
+let coins = localStorage.getItem("coins") ? parseInt(localStorage.getItem("coins")) : 1000;
+let xp = localStorage.getItem("xp") ? parseInt(localStorage.getItem("xp")) : 0;
 
-# ================= START =================
+const symbols = ["🍒","🍋","🔔","💎","7️⃣"];
+const caseItems = [
+    {emoji:"🍒",reward:100,weight:40},
+    {emoji:"🍋",reward:200,weight:30},
+    {emoji:"🔔",reward:500,weight:20},
+    {emoji:"💎",reward:1000,weight:8},
+    {emoji:"👑",reward:3000,weight:2}
+];
 
-@bot.message_handler(commands=['start'])
-def start(message):
-    args = message.text.split()
-    user = get_user(message.from_user.id)
+const wheelRewards = [0,200,500,1000,2000,5000];
 
-    if not user:
-        ref = None
-        if len(args) > 1:
-            try:
-                ref = int(args[1])
-                if ref == message.from_user.id:
-                    ref = None
-                elif not get_user(ref):
-                    ref = None
-            except:
-                ref = None
+updateUI();
 
-        create_user(message.from_user.id, ref)
+/* SLOT */
+function spin(){
+    let bet = parseInt(document.getElementById("bet").value);
+    if(coins < bet) return alert("Недостаточно монет");
 
-    bot.send_message(
-        message.chat.id,
-        "🎰 <b>SPIN ZONE 2.0</b>\n\nВыбери действие:",
-        parse_mode="HTML",
-        reply_markup=main_menu()
-    )
+    coins -= bet;
+    updateUI();
 
+    let s1,s2,s3;
 
-# ================= SPIN =================
+    let interval1 = setInterval(()=>{ 
+        s1=randomSymbol();
+        document.getElementById("slot").innerText = s1+" 🎰 🎰";
+    },100);
 
-@bot.callback_query_handler(func=lambda call: call.data == "spin")
-def spin(call):
-    user = get_user(call.from_user.id)
+    setTimeout(()=>{
+        clearInterval(interval1);
 
-    if not user:
-        bot.answer_callback_query(call.id, "Сначала нажми /start")
-        return
+        let interval2 = setInterval(()=>{
+            s2=randomSymbol();
+            document.getElementById("slot").innerText = s1+" "+s2+" 🎰";
+        },100);
 
-    # КД 2 секунды
-    if time.time() - user[5] < 2:
-        bot.answer_callback_query(call.id, "⏳ Подожди немного")
-        return
+        setTimeout(()=>{
+            clearInterval(interval2);
 
-    if user[1] < 100:
-        bot.answer_callback_query(call.id, "❌ Нужно 100 монет")
-        return
+            let interval3 = setInterval(()=>{
+                s3=randomSymbol();
+                document.getElementById("slot").innerText = s1+" "+s2+" "+s3;
+            },100);
 
-    bet = 100
-    coins = user[1] - bet
-    xp = user[2]
-    spins = user[6] + 1
+            setTimeout(()=>{
+                clearInterval(interval3);
 
-    symbols = ["🍒", "🍋", "🔔", "💎", "7️⃣"]
-    result = [random.choice(symbols) for _ in range(3)]
+                let win = calculateWin(s1,s2,s3,bet);
+                if(win>0){
+                    coins+=win;
+                    xp+=15;
+                    document.getElementById("slot").classList.add("win");
+                    setTimeout(()=>document.getElementById("slot").classList.remove("win"),2000);
+                } else xp+=3;
 
-    win = 0
+                save();
+                updateUI();
 
-    # выплаты
-    if result.count("7️⃣") == 3:
-        win = bet * 20
-    elif result.count("💎") == 3:
-        win = bet * 10
-    elif result.count("🔔") == 3:
-        win = bet * 5
-    elif result.count("🍒") == 3:
-        win = bet * 3
-    elif len(set(result)) == 2:
-        win = int(bet * 1.5)
+            },1000);
 
-    coins += win
-    xp += 10 if win > 0 else 2
+        },1000);
 
-    update_user(call.from_user.id, coins, xp, last_spin=time.time(), spins=spins)
+    },1000);
+}
 
-    text = f"🎰 {' | '.join(result)}\n\n"
+function calculateWin(a,b,c,bet){
+    if(a==="7️⃣"&&b==="7️⃣"&&c==="7️⃣") return bet*20;
+    if(a==="💎"&&b==="💎"&&c==="💎") return bet*10;
+    if(a===b&&b===c) return bet*5;
+    if(a===b||a===c||b===c) return Math.floor(bet*1.5);
+    return 0;
+}
 
-    if win > 0:
-        text += f"🔥 Ты выиграл {win} монет!"
-    else:
-        text += "😢 Ты проиграл"
+function randomSymbol(){
+    return symbols[Math.floor(Math.random()*symbols.length)];
+}
 
-    bot.edit_message_text(
-        text,
-        call.message.chat.id,
-        call.message.message_id,
-        reply_markup=main_menu()
-    )
+/* CASE */
+function openCase(){
+    if(coins<300) return alert("Недостаточно монет");
+    coins-=300;
 
+    let container=document.getElementById("caseAnimation");
+    let rollInterval=setInterval(()=>{
+        container.innerText=caseItems[Math.floor(Math.random()*caseItems.length)].emoji;
+    },100);
 
-# ================= BONUS =================
+    setTimeout(()=>{
+        clearInterval(rollInterval);
 
-@bot.callback_query_handler(func=lambda call: call.data == "bonus")
-def bonus(call):
-    user = get_user(call.from_user.id)
-    today = str(datetime.date.today())
+        let item=weightedRandom(caseItems);
+        container.innerText=item.emoji;
+        coins+=item.reward;
+        xp+=10;
 
-    if user[4] == today:
-        bot.answer_callback_query(call.id, "🎁 Уже получал сегодня")
-        return
+        container.classList.add("win");
+        setTimeout(()=>container.classList.remove("win"),2000);
 
-    reward = random.randint(200, 500)
-    update_user(call.from_user.id,
-                coins=user[1] + reward,
-                last_bonus=today)
+        save();
+        updateUI();
 
-    bot.edit_message_text(
-        f"🎁 Ты получил {reward} монет!",
-        call.message.chat.id,
-        call.message.message_id,
-        reply_markup=main_menu()
-    )
+    },2000);
+}
 
+function weightedRandom(items){
+    let totalWeight=items.reduce((sum,i)=>sum+i.weight,0);
+    let random=Math.random()*totalWeight;
+    for(let item of items){
+        if(random<item.weight) return item;
+        random-=item.weight;
+    }
+}
 
-# ================= PROFILE =================
+/* WHEEL */
+function spinWheel(){
+    let reward=wheelRewards[Math.floor(Math.random()*wheelRewards.length)];
+    let wheel=document.getElementById("wheel");
 
-@bot.callback_query_handler(func=lambda call: call.data == "profile")
-def profile(call):
-    user = get_user(call.from_user.id)
+    let rotation=360*5+Math.floor(Math.random()*360);
+    wheel.style.transform="rotate("+rotation+"deg)";
 
-    level = "Bronze"
-    if user[2] >= 300:
-        level = "Diamond"
-    elif user[2] >= 150:
-        level = "Gold"
-    elif user[2] >= 50:
-        level = "Silver"
+    setTimeout(()=>{
+        coins+=reward;
+        xp+=20;
+        alert("🎡 Выигрыш: "+reward);
+        save();
+        updateUI();
+    },4000);
+}
 
-    text = (
-        f"👤 Профиль\n\n"
-        f"💰 Монеты: {user[1]}\n"
-        f"⭐ XP: {user[2]}\n"
-        f"🏆 Уровень: {level}\n"
-        f"🎰 Спинов: {user[6]}"
-    )
+function updateUI(){
+    document.getElementById("coins").innerText=coins;
 
-    bot.edit_message_text(
-        text,
-        call.message.chat.id,
-        call.message.message_id,
-        reply_markup=main_menu()
-    )
+    let level="Bronze";
+    if(xp>=100) level="Silver";
+    if(xp>=300) level="Gold";
+    if(xp>=600) level="Diamond";
+    if(xp>=1000) level="VIP";
 
+    document.getElementById("level").innerText=level;
+}
 
-# ================= TOP =================
+function save(){
+    localStorage.setItem("coins",coins);
+    localStorage.setItem("xp",xp);
+}
+</script>
 
-@bot.callback_query_handler(func=lambda call: call.data == "top")
-def top(call):
-    cursor.execute("SELECT user_id, coins FROM users ORDER BY coins DESC LIMIT 5")
-    top_users = cursor.fetchall()
-
-    text = "🏆 ТОП 5 игроков:\n\n"
-    for i, u in enumerate(top_users):
-        text += f"{i+1}. ID {u[0]} — {u[1]} монет\n"
-
-    bot.edit_message_text(
-        text,
-        call.message.chat.id,
-        call.message.message_id,
-        reply_markup=main_menu()
-    )
-
-
-print("SPIN ZONE 2.0 ONLINE 🚀")
-bot.infinity_polling()
+</body>
+</html>

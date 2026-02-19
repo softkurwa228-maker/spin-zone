@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>SPIN ZONE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
 body{
@@ -25,37 +26,26 @@ h1{
 .card{
     margin:15px auto;
     padding:15px;
-    width:85%;
+    width:90%;
     border-radius:20px;
     background:rgba(255,255,255,0.08);
     backdrop-filter:blur(12px);
 }
 
-.balance{
-    font-size:22px;
-}
-
 #slot{
     font-size:70px;
     margin:30px;
-    transition:transform 0.3s;
 }
 
-.spin-btn{
-    padding:15px 50px;
-    font-size:22px;
+button{
+    padding:12px 25px;
+    margin:5px;
+    font-size:16px;
     border:none;
-    border-radius:40px;
+    border-radius:25px;
     background:linear-gradient(45deg,gold,orange);
-    color:black;
     font-weight:bold;
     cursor:pointer;
-    box-shadow:0 0 25px gold;
-    transition:0.3s;
-}
-
-.spin-btn:hover{
-    transform:scale(1.1);
 }
 
 .progress-bar{
@@ -69,13 +59,15 @@ h1{
 .progress{
     height:100%;
     width:0%;
-    background:linear-gradient(90deg,gold,orange);
+    background:gold;
     border-radius:10px;
 }
 
-.vip{
-    color:gold;
-    font-weight:bold;
+canvas{
+    position:fixed;
+    top:0;
+    left:0;
+    pointer-events:none;
 }
 </style>
 </head>
@@ -85,8 +77,8 @@ h1{
 <h1>🎰 SPIN ZONE</h1>
 
 <div class="card">
-<div class="balance">💰 Баланс: <span id="coins">1000</span></div>
-<div>🏆 Уровень: <span id="level">Bronze</span></div>
+💰 Баланс: <span id="coins">1000</span><br>
+🏆 Уровень: <span id="level">Bronze</span>
 <div class="progress-bar">
 <div class="progress" id="progress"></div>
 </div>
@@ -94,103 +86,111 @@ h1{
 
 <div id="slot">🎲</div>
 
-<button class="spin-btn" onclick="spin()">SPIN</button>
+<button onclick="spin()">SPIN</button>
+<button onclick="openCase()">💼 CASE</button>
+<button onclick="wheel()">🎡 WHEEL</button>
+<button onclick="dailyBonus()">🎁 BONUS</button>
 
-<div class="card">
-<button onclick="dailyBonus()">🎁 Daily Bonus</button>
-<button onclick="addReferral()">👥 Invite Friend</button>
-</div>
+<canvas id="confetti"></canvas>
 
 <script>
 let coins = localStorage.getItem("coins") ? parseInt(localStorage.getItem("coins")) : 1000;
 let xp = localStorage.getItem("xp") ? parseInt(localStorage.getItem("xp")) : 0;
-let lastBonus = localStorage.getItem("bonus");
 
 const emojis = ["🍒","🍋","💎","🔥","👑","🎰"];
-
 updateUI();
 
 function spin(){
-    if(coins < 50){
-        alert("Недостаточно монет!");
-        return;
-    }
-
+    if(coins < 50){ alert("Недостаточно монет"); return; }
     coins -= 50;
-    save();
-
-    let spinInterval = setInterval(()=>{
-        document.getElementById("slot").innerText =
-        emojis[Math.floor(Math.random()*emojis.length)];
-    },100);
-
+    animateSlot();
     setTimeout(()=>{
-        clearInterval(spinInterval);
-
-        let result = emojis[Math.floor(Math.random()*emojis.length)];
-        document.getElementById("slot").innerText = result;
-
         let chance = Math.random();
-
-        if(chance > 0.85){
-            let reward = 1000;
-            coins += reward;
-            xp += 30;
-            alert("💎 JACKPOT +1000!");
+        if(chance > 0.9){
+            jackpot();
+        } else if(chance > 0.6){
+            win(200);
         }
-        else if(chance > 0.6){
-            let reward = Math.floor(Math.random()*300)+100;
-            coins += reward;
-            xp += 15;
-            alert("🔥 WIN +"+reward);
-        }
-
         save();
         updateUI();
-
     },2000);
 }
 
-function dailyBonus(){
-    let today = new Date().toDateString();
-    if(lastBonus === today){
-        alert("Бонус уже получен сегодня!");
-        return;
-    }
-
-    coins += 500;
-    lastBonus = today;
-    localStorage.setItem("bonus", today);
-    save();
-    updateUI();
-    alert("🎁 +500 монет!");
+function animateSlot(){
+    let i=0;
+    let interval=setInterval(()=>{
+        document.getElementById("slot").innerText =
+        emojis[Math.floor(Math.random()*emojis.length)];
+        i++;
+        if(i>15) clearInterval(interval);
+    },100);
 }
 
-function addReferral(){
-    coins += 300;
+function win(amount){
+    coins+=amount;
+    xp+=10;
+    alert("🔥 WIN +"+amount);
+}
+
+function jackpot(){
+    coins+=1000;
+    xp+=50;
+    launchConfetti();
+    alert("💎 JACKPOT +1000!");
+}
+
+function openCase(){
+    if(coins < 100){ alert("Нужно 100 монет"); return; }
+    coins-=100;
+    let reward=Math.floor(Math.random()*500)+50;
+    coins+=reward;
+    alert("💼 CASE: +"+reward);
     save();
     updateUI();
-    alert("👥 Друг присоединился! +300 монет");
+}
+
+function wheel(){
+    let reward=Math.floor(Math.random()*300)+50;
+    coins+=reward;
+    alert("🎡 WHEEL: +"+reward);
+    save();
+    updateUI();
+}
+
+function dailyBonus(){
+    coins+=500;
+    alert("🎁 +500");
+    save();
+    updateUI();
 }
 
 function updateUI(){
-    document.getElementById("coins").innerText = coins;
-
-    let level = "Bronze";
-    if(xp >= 50) level = "Silver";
-    if(xp >= 150) level = "Gold";
-    if(xp >= 300) level = "Diamond";
-    if(xp >= 500) level = "VIP";
-
-    document.getElementById("level").innerText = level;
-
-    let progress = xp % 100;
-    document.getElementById("progress").style.width = progress + "%";
+    document.getElementById("coins").innerText=coins;
+    let level="Bronze";
+    if(xp>=50) level="Silver";
+    if(xp>=150) level="Gold";
+    if(xp>=300) level="Diamond";
+    document.getElementById("level").innerText=level;
+    document.getElementById("progress").style.width=(xp%100)+"%";
 }
 
 function save(){
-    localStorage.setItem("coins", coins);
-    localStorage.setItem("xp", xp);
+    localStorage.setItem("coins",coins);
+    localStorage.setItem("xp",xp);
+}
+
+/* Confetti */
+function launchConfetti(){
+    const canvas=document.getElementById("confetti");
+    const ctx=canvas.getContext("2d");
+    canvas.width=window.innerWidth;
+    canvas.height=window.innerHeight;
+    for(let i=0;i<100;i++){
+        ctx.fillStyle="hsl("+Math.random()*360+",100%,50%)";
+        ctx.fillRect(Math.random()*canvas.width,
+                     Math.random()*canvas.height,5,5);
+    }
+    setTimeout(()=>ctx.clearRect(0,0,canvas.width,canvas.height),1000);
 }
 </script>
 

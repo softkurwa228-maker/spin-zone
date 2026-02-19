@@ -2,263 +2,305 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>SPIN ZONE X</title>
+<title>SPIN ZONE ULTIMATE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
     margin:0;
-    background:#050010;
     font-family:Arial;
+    background:#050010;
     color:white;
     text-align:center;
     overflow-x:hidden;
+    perspective:1200px;
 }
+
+/* Parallax */
+.bg{
+    position:fixed;
+    inset:0;
+    background:
+    radial-gradient(circle at 20% 20%,rgba(255,0,200,0.2),transparent 40%),
+    radial-gradient(circle at 80% 30%,rgba(0,200,255,0.2),transparent 40%),
+    radial-gradient(circle at 50% 80%,rgba(255,200,0,0.2),transparent 40%);
+    animation:moveBg 25s linear infinite;
+    z-index:-1;
+}
+@keyframes moveBg{
+    from{transform:translate(0,0);}
+    to{transform:translate(-20%,-20%);}
+}
+
+.scene{ transition:transform 0.2s ease; }
 
 h1{
     margin:20px;
-    background:linear-gradient(90deg,#ffd700,#ff00cc);
+    background:linear-gradient(90deg,#ffd700,#ff00cc,#00ffff);
     -webkit-background-clip:text;
     color:transparent;
 }
 
-.screen{ display:none; padding-bottom:80px; }
-.active{ display:block; }
-
-.btn{
-    padding:14px 25px;
-    margin:10px;
-    border:none;
-    border-radius:30px;
-    background:linear-gradient(45deg,#ffd700,#ff00cc);
-    font-weight:bold;
-    cursor:pointer;
-}
-
 .card{
-    margin:20px auto;
-    padding:20px;
-    width:90%;
+    margin:15px auto;
+    padding:15px;
+    width:92%;
     max-width:500px;
     border-radius:20px;
     background:rgba(255,255,255,0.05);
     backdrop-filter:blur(15px);
+    box-shadow:0 0 25px rgba(255,0,200,0.3);
+}
+
+.btn{
+    padding:10px 20px;
+    margin:5px;
+    border:none;
+    border-radius:25px;
+    background:linear-gradient(45deg,#ffd700,#ff00cc);
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow:0 0 15px #ff00cc;
+}
+
+.progress-bar{
+    width:100%;
+    height:10px;
+    background:#222;
+    border-radius:10px;
+}
+.progress{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,#ffd700,#ff00cc);
+    border-radius:10px;
 }
 
 /* SLOT */
-.slot-wrapper{
-    display:flex;
-    justify-content:center;
-    gap:15px;
+.slot{
+    font-size:60px;
     margin:20px;
+    transition:transform 0.2s;
 }
 
-.reel{
-    width:80px;
-    height:120px;
-    overflow:hidden;
-    border-radius:15px;
-    background:#111;
-    position:relative;
-}
-
-.reel-inner{
-    position:absolute;
-    width:100%;
-}
-
-.symbol{
-    height:120px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:50px;
-}
-
-/* WHEEL */
-#wheel{
-    width:220px;
-    height:220px;
+/* Particles */
+.particle{
+    position:fixed;
+    width:8px;
+    height:8px;
     border-radius:50%;
-    margin:20px auto;
-    background:conic-gradient(
-        #ffd700 0deg 60deg,
-        #ff00cc 60deg 120deg,
-        #00ffff 120deg 180deg,
-        #ffd700 180deg 240deg,
-        #ff00cc 240deg 300deg,
-        #00ffff 300deg 360deg
-    );
-    transition:transform 5s cubic-bezier(.17,.67,.83,.67);
+    animation:fall 1.5s linear forwards;
+    pointer-events:none;
+}
+@keyframes fall{
+    to{ transform:translateY(700px) scale(0.3); opacity:0; }
 }
 
-.pointer{
-    width:0;
-    height:0;
-    border-left:15px solid transparent;
-    border-right:15px solid transparent;
-    border-bottom:25px solid white;
-    margin:auto;
+/* Shake */
+@keyframes shake{
+    0%{transform:translateX(0);}
+    25%{transform:translateX(-5px);}
+    50%{transform:translateX(5px);}
+    75%{transform:translateX(-5px);}
+    100%{transform:translateX(0);}
 }
+.shake{ animation:shake 0.4s; }
 
-/* CASE */
-.case-container{
-    overflow:hidden;
-    width:100%;
-    height:120px;
-    background:#111;
-    border-radius:15px;
-    position:relative;
-}
-
-.case-inner{
-    display:flex;
-    position:absolute;
-}
-
-.case-item{
-    width:120px;
-    height:120px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:40px;
-}
-
-.win-text{
-    font-size:24px;
-    margin-top:10px;
-}
 </style>
 </head>
 
 <body>
 
-<h1>🎰 SPIN ZONE X</h1>
+<div class="bg"></div>
+<div class="scene" id="scene">
+
+<h1>🎰 SPIN ZONE ULTIMATE</h1>
 
 <div class="card">
-💰 Баланс: <span id="coins"></span>
+💰 Монеты: <span id="coins"></span><br>
+⭐ XP: <span id="xp"></span><br>
+🏆 Уровень: <span id="level"></span>
+<div class="progress-bar"><div class="progress" id="progress"></div></div>
 </div>
 
-<!-- LOBBY -->
-<div id="lobby" class="screen active">
-<button class="btn" onclick="show('slot')">🎰 SLOT</button>
-<button class="btn" onclick="show('wheel')">🎡 WHEEL</button>
-<button class="btn" onclick="show('case')">🎁 CASE</button>
+<div class="card">
+<h3>🎰 SLOT</h3>
+<div class="slot" id="slot">🎰</div>
+Ставка: <input type="number" id="bet" value="100" style="width:80px">
+<br>
+<button class="btn" onclick="spin()">SPIN</button>
 </div>
 
-<!-- SLOT -->
-<div id="slot" class="screen">
-<h2>SLOT</h2>
-<div class="slot-wrapper">
-<div class="reel"><div class="reel-inner" id="r1"></div></div>
-<div class="reel"><div class="reel-inner" id="r2"></div></div>
-<div class="reel"><div class="reel-inner" id="r3"></div></div>
-</div>
-<button class="btn" onclick="spinSlot()">SPIN (100)</button>
-<br><button class="btn" onclick="show('lobby')">⬅ Назад</button>
+<div class="card">
+<h3>💣 CRASH</h3>
+<div id="crashValue">1.00x</div>
+<button class="btn" onclick="startCrash()">START (500)</button>
+<button class="btn" onclick="cashOut()">CASH OUT</button>
 </div>
 
-<!-- WHEEL -->
-<div id="wheelScreen" class="screen">
-<h2>WHEEL</h2>
-<div class="pointer"></div>
-<div id="wheel"></div>
-<button class="btn" onclick="spinWheel()">SPIN</button>
-<br><button class="btn" onclick="show('lobby')">⬅ Назад</button>
+<div class="card">
+<h3>🎁 CASE</h3>
+<button class="btn" onclick="openCase()">OPEN (1000)</button>
 </div>
 
-<!-- CASE -->
-<div id="caseScreen" class="screen">
-<h2>CASE OPENING</h2>
-<div class="case-container">
-<div class="case-inner" id="caseInner"></div>
+<div class="card">
+<button class="btn" onclick="dailyBonus()">🎁 Daily Bonus</button>
 </div>
-<button class="btn" onclick="openCase()">OPEN (200)</button>
-<div class="win-text" id="caseResult"></div>
-<br><button class="btn" onclick="show('lobby')">⬅ Назад</button>
+
 </div>
 
 <script>
-let coins=localStorage.getItem("coins")?parseInt(localStorage.getItem("coins")):2000;
+let coins=parseInt(localStorage.getItem("coins"))||5000;
+let xp=parseInt(localStorage.getItem("xp"))||0;
+let level=parseInt(localStorage.getItem("level"))||1;
+let streak=parseInt(localStorage.getItem("streak"))||0;
 update();
 
-function show(id){
-    document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-    if(id==="wheel") document.getElementById("wheelScreen").classList.add("active");
-    else if(id==="case") document.getElementById("caseScreen").classList.add("active");
-    else document.getElementById(id).classList.add("active");
+/* Save */
+function save(){
+localStorage.setItem("coins",coins);
+localStorage.setItem("xp",xp);
+localStorage.setItem("level",level);
+localStorage.setItem("streak",streak);
+}
+
+/* Update UI */
+function update(){
+document.getElementById("coins").innerText=coins;
+document.getElementById("xp").innerText=xp;
+document.getElementById("level").innerText=level;
+document.getElementById("progress").style.width=(xp%100)+"%";
+save();
+}
+
+/* Level up */
+function addXP(amount){
+xp+=amount;
+if(xp>=level*100){
+xp=0;
+level++;
+coins+=level*500;
+alert("🎉 Level Up! +" + (level*500));
+}
+update();
+}
+
+/* Particles */
+function particles(){
+for(let i=0;i<30;i++){
+let p=document.createElement("div");
+p.className="particle";
+p.style.left=Math.random()*window.innerWidth+"px";
+p.style.top="0px";
+p.style.background=["#ffd700","#ff00cc","#00ffff"][Math.floor(Math.random()*3)];
+document.body.appendChild(p);
+setTimeout(()=>p.remove(),1500);
+}
 }
 
 /* SLOT */
 const symbols=["🍒","🍋","🔔","💎","7️⃣"];
-["r1","r2","r3"].forEach(id=>{
-    let reel=document.getElementById(id);
-    for(let i=0;i<25;i++){
-        let d=document.createElement("div");
-        d.className="symbol";
-        d.innerText=symbols[Math.floor(Math.random()*symbols.length)];
-        reel.appendChild(d);
-    }
-});
+function spin(){
+let bet=parseInt(document.getElementById("bet").value);
+if(coins<bet) return alert("Недостаточно монет");
 
-function spinSlot(){
-    if(coins<100) return alert("Недостаточно монет");
-    coins-=100; update();
+coins-=bet;
+let result=symbols[Math.floor(Math.random()*symbols.length)];
+document.getElementById("slot").innerText=result;
 
-    ["r1","r2","r3"].forEach((id,i)=>{
-        let reel=document.getElementById(id);
-        let offset=(Math.floor(Math.random()*15)+5)*120;
-        reel.style.transition="transform "+(2+i)+"s cubic-bezier(.17,.67,.83,.67)";
-        reel.style.transform="translateY(-"+offset+"px)";
-    });
+let win=0;
 
-    setTimeout(()=>{ coins+=Math.floor(Math.random()*800); update(); },4000);
+if(result==="7️⃣") win=bet*5;
+else if(result==="💎") win=bet*3;
+else if(result==="🔔") win=bet*2;
+else if(result==="🍒") win=bet*1.5;
+
+if(Math.random()<0.1){ win=bet*10; }
+
+if(win>0){
+coins+=Math.floor(win);
+particles();
+addXP(20);
+} else {
+document.getElementById("slot").classList.add("shake");
+setTimeout(()=>document.getElementById("slot").classList.remove("shake"),400);
 }
 
-/* WHEEL */
-function spinWheel(){
-    let wheel=document.getElementById("wheel");
-    let rotation=360*8+Math.random()*360;
-    wheel.style.transform="rotate("+rotation+"deg)";
-    setTimeout(()=>{
-        let reward=[0,200,500,1000,2000][Math.floor(Math.random()*5)];
-        coins+=reward;
-        alert("Выигрыш: "+reward);
-        update();
-    },5000);
+update();
+}
+
+/* CRASH */
+let crashInterval;
+let multiplier=1;
+let crashed=false;
+
+function startCrash(){
+if(coins<500) return;
+coins-=500; update();
+multiplier=1; crashed=false;
+
+crashInterval=setInterval(()=>{
+multiplier+=0.05;
+document.getElementById("crashValue").innerText=multiplier.toFixed(2)+"x";
+
+if(Math.random()<0.03*multiplier){
+clearInterval(crashInterval);
+crashed=true;
+document.getElementById("crashValue").innerText="💥 CRASHED";
+}
+},100);
+}
+
+function cashOut(){
+if(crashed) return;
+clearInterval(crashInterval);
+let reward=Math.floor(500*multiplier);
+coins+=reward;
+particles();
+addXP(30);
+update();
 }
 
 /* CASE */
-const caseSymbols=["💎","🔥","👑","💰","🍀"];
-let caseInner=document.getElementById("caseInner");
-
-for(let i=0;i<40;i++){
-    let item=document.createElement("div");
-    item.className="case-item";
-    item.innerText=caseSymbols[Math.floor(Math.random()*caseSymbols.length)];
-    caseInner.appendChild(item);
-}
-
 function openCase(){
-    if(coins<200) return alert("Недостаточно монет");
-    coins-=200; update();
+if(coins<1000) return;
+coins-=1000;
 
-    let offset=(Math.floor(Math.random()*25)+5)*120;
-    caseInner.style.transition="transform 4s cubic-bezier(.17,.67,.83,.67)";
-    caseInner.style.transform="translateX(-"+offset+"px)";
+let rarities=[
+{chance:0.5,reward:800},
+{chance:0.3,reward:2000},
+{chance:0.15,reward:5000},
+{chance:0.04,reward:15000},
+{chance:0.01,reward:50000}
+];
 
-    setTimeout(()=>{
-        let reward=Math.floor(Math.random()*3000);
-        coins+=reward;
-        document.getElementById("caseResult").innerText="🎉 Выигрыш: "+reward;
-        update();
-    },4000);
+let roll=Math.random();
+let sum=0;
+for(let r of rarities){
+sum+=r.chance;
+if(roll<=sum){
+coins+=r.reward;
+particles();
+addXP(50);
+alert("🎁 Выигрыш: "+r.reward);
+break;
+}
 }
 
-function update(){
-    document.getElementById("coins").innerText=coins;
-    localStorage.setItem("coins",coins);
+update();
+}
+
+/* Daily */
+function dailyBonus(){
+let today=new Date().toDateString();
+let last=localStorage.getItem("daily");
+if(last===today) return alert("Уже получено!");
+
+streak++;
+coins+=1000+streak*200;
+localStorage.setItem("daily",today);
+particles();
+update();
 }
 </script>
 

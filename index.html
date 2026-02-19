@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPIN ZONE</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+body {
+    margin:0;
+    font-family:Arial, sans-serif;
+    background: linear-gradient(135deg, #000000, #1a1a1a);
+    color:white;
+    text-align:center;
+}
+.container {
+    padding:20px;
+}
+.logo {
+    font-size:32px;
+    font-weight:bold;
+    margin-top:20px;
+}
+.balance {
+    margin:20px;
+    font-size:20px;
+}
+button {
+    background:gold;
+    border:none;
+    padding:15px 30px;
+    font-size:18px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:bold;
+}
+.result {
+    margin-top:20px;
+    font-size:22px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="logo">? SPIN ZONE ?</div>
+    <div class="balance">??????: <span id="coins">1000</span> ?</div>
+    <button onclick="spin()">? ??????? (100)</button>
+    <div class="result" id="result"></div>
+</div>
+
+<script>
+let coins = 1000;
+
+function spin() {
+    if (coins < 100) {
+        document.getElementById("result").innerText = "???????????? ?????!";
+        return;
+    }
+
+    coins -= 100;
+
+    let winChance = Math.random();
+
+    if (winChance > 0.6) {
+        let win = Math.floor(Math.random() * 500) + 100;
+        coins += win;
+        document.getElementById("result").innerText = "? ?? ???????? " + win + " ?!";
+    } else {
+        document.getElementById("result").innerText = "? ?? ????????? 100 ?";
+    }
+
+    document.getElementById("coins").innerText = coins;
+}
+</script>
+
+</body>
+</html>

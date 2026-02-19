@@ -2,297 +2,167 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>SPIN ZONE MAX</title>
+<title>SPIN ZONE ULTRA</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
     margin:0;
-    font-family:Arial;
     background:#050010;
     color:white;
+    font-family:Arial;
     text-align:center;
-    overflow:hidden;
-}
-
-/* Animated Neon Background */
-body::before{
-    content:"";
-    position:fixed;
-    width:200%;
-    height:200%;
-    background:
-    radial-gradient(circle at 20% 20%,rgba(255,0,200,0.2),transparent 40%),
-    radial-gradient(circle at 80% 30%,rgba(0,200,255,0.2),transparent 40%),
-    radial-gradient(circle at 50% 80%,rgba(255,200,0,0.2),transparent 40%);
-    animation:moveBg 15s linear infinite;
-    z-index:-1;
-}
-
-@keyframes moveBg{
-    from{transform:translate(0,0);}
-    to{transform:translate(-25%,-25%);}
+    overflow-x:hidden;
 }
 
 h1{
-    margin-top:15px;
-    font-size:30px;
+    margin:20px 0;
     background:linear-gradient(90deg,#ffd700,#ff00cc);
     -webkit-background-clip:text;
     color:transparent;
 }
 
-/* CARD */
 .card{
     margin:20px auto;
     padding:20px;
-    width:90%;
+    width:95%;
+    max-width:500px;
     border-radius:20px;
     background:rgba(255,255,255,0.05);
     backdrop-filter:blur(20px);
 }
 
-/* SLOT CYLINDER EFFECT */
-.slot-container{
-    perspective:1200px;
+/* SLOT MACHINE */
+.slot-wrapper{
     display:flex;
     justify-content:center;
-    gap:25px;
-    margin:40px 0;
+    gap:15px;
+    margin:30px 0;
 }
 
 .reel{
-    width:90px;
-    height:90px;
-    font-size:55px;
+    width:80px;
+    height:120px;
+    overflow:hidden;
+    border-radius:15px;
+    background:#111;
+    box-shadow:0 0 15px #ff00cc;
+    position:relative;
+}
+
+.reel-inner{
+    position:absolute;
+    width:100%;
+}
+
+.symbol{
+    height:120px;
     display:flex;
     align-items:center;
     justify-content:center;
-    border-radius:20px;
-    background:rgba(255,255,255,0.08);
-    transform-style:preserve-3d;
-    transition:transform 1.8s cubic-bezier(.17,.67,.83,.67);
+    font-size:50px;
 }
 
 .spin-btn{
-    padding:15px 40px;
-    font-size:18px;
+    padding:14px 35px;
     border:none;
     border-radius:40px;
     background:linear-gradient(45deg,#ffd700,#ff00cc);
     font-weight:bold;
     cursor:pointer;
-    box-shadow:0 0 25px #ff00cc;
 }
 
-.spin-btn:hover{
-    transform:scale(1.1);
-}
-
-.win-glow{
+.win{
     animation:glow 0.5s alternate infinite;
 }
 
 @keyframes glow{
-    from{ box-shadow:0 0 15px #ffd700;}
-    to{ box-shadow:0 0 40px #ff00cc;}
-}
-
-/* WHEEL */
-#wheel{
-    width:240px;
-    height:240px;
-    border-radius:50%;
-    margin:20px auto;
-    background:conic-gradient(
-        #ffd700 0deg 60deg,
-        #ff00cc 60deg 120deg,
-        #00ffff 120deg 180deg,
-        #ffd700 180deg 240deg,
-        #ff00cc 240deg 300deg,
-        #00ffff 300deg 360deg
-    );
-    border:10px solid white;
-    transition:transform 6s cubic-bezier(.17,.67,.83,.67);
-}
-
-.pointer{
-    width:0;
-    height:0;
-    border-left:18px solid transparent;
-    border-right:18px solid transparent;
-    border-bottom:30px solid white;
-    margin:auto;
-}
-
-/* JACKPOT SCREEN */
-#jackpot{
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    background:black;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    font-size:50px;
-    background:radial-gradient(circle,#ff00cc,#000);
-    z-index:10;
-}
-
-/* CONFETTI */
-.confetti{
-    position:absolute;
-    width:10px;
-    height:10px;
-    background:gold;
-    animation:fall 2s linear forwards;
-}
-
-@keyframes fall{
-    to{
-        transform:translateY(800px) rotate(720deg);
-        opacity:0;
-    }
+    from{box-shadow:0 0 10px #ffd700;}
+    to{box-shadow:0 0 30px #ff00cc;}
 }
 </style>
 </head>
 
 <body>
 
-<h1>🎰 SPIN ZONE MAX</h1>
+<h1>🎰 SPIN ZONE ULTRA</h1>
 
 <div class="card">
 💰 Баланс: <span id="coins"></span>
 </div>
 
 <div class="card">
-<h2>SLOT</h2>
-<div class="slot-container">
-<div class="reel" id="r1">🎰</div>
-<div class="reel" id="r2">🎰</div>
-<div class="reel" id="r3">🎰</div>
+<div class="slot-wrapper">
+<div class="reel"><div class="reel-inner" id="reel1"></div></div>
+<div class="reel"><div class="reel-inner" id="reel2"></div></div>
+<div class="reel"><div class="reel-inner" id="reel3"></div></div>
 </div>
 <button class="spin-btn" onclick="spin()">SPIN (100)</button>
 </div>
 
-<div class="card">
-<h2>WHEEL</h2>
-<div class="pointer"></div>
-<div id="wheel"></div>
-<button class="spin-btn" onclick="spinWheel()">SPIN WHEEL</button>
-</div>
-
-<div id="jackpot">💎 JACKPOT 💎</div>
-
 <script>
 let coins=localStorage.getItem("coins")?parseInt(localStorage.getItem("coins")):1000;
+document.getElementById("coins").innerText=coins;
+
 const symbols=["🍒","🍋","🔔","💎","7️⃣"];
-updateUI();
+const reels=["reel1","reel2","reel3"];
 
-/* SOUND */
-function play(freq){
-    let ctx=new (window.AudioContext||window.webkitAudioContext)();
-    let osc=ctx.createOscillator();
-    osc.frequency.value=freq;
-    osc.connect(ctx.destination);
-    osc.start();
-    setTimeout(()=>osc.stop(),200);
-}
-
-/* CONFETTI */
-function confetti(){
-    for(let i=0;i<60;i++){
-        let c=document.createElement("div");
-        c.className="confetti";
-        c.style.left=Math.random()*window.innerWidth+"px";
-        c.style.background=["#ffd700","#ff00cc","#00ffff"][Math.floor(Math.random()*3)];
-        document.body.appendChild(c);
-        setTimeout(()=>c.remove(),2000);
+/* Fill reels */
+reels.forEach(id=>{
+    let reel=document.getElementById(id);
+    for(let i=0;i<30;i++){
+        let div=document.createElement("div");
+        div.className="symbol";
+        div.innerText=symbols[Math.floor(Math.random()*symbols.length)];
+        reel.appendChild(div);
     }
-}
+});
 
-/* SLOT */
+/* Spin */
 function spin(){
     if(coins<100) return alert("Недостаточно монет");
     coins-=100;
-    updateUI();
-    play(200);
+    update();
 
-    let r1=random();
-    let r2=random();
-    let r3=random();
+    reels.forEach((id,index)=>{
+        let reel=document.getElementById(id);
+        let randomIndex=Math.floor(Math.random()*20)+5;
+        let offset=randomIndex*120;
 
-    animate("r1",r1,0);
-    animate("r2",r2,400);
-    animate("r3",r3,800);
+        reel.style.transition="transform "+(2+index)+"s cubic-bezier(.17,.67,.83,.67)";
+        reel.style.transform="translateY(-"+offset+"px)";
+    });
 
-    setTimeout(()=>{
-        let win=calc(r1,r2,r3);
-        if(win>0){
-            coins+=win;
-            document.querySelectorAll(".reel").forEach(r=>r.classList.add("win-glow"));
-            confetti();
-            play(600);
-            if(win>=2000) showJackpot();
-            setTimeout(()=>document.querySelectorAll(".reel").forEach(r=>r.classList.remove("win-glow")),2000);
-        }
-        save(); updateUI();
-    },2500);
+    setTimeout(checkWin,4000);
 }
 
-function animate(id,symbol,delay){
-    let reel=document.getElementById(id);
-    setTimeout(()=>{
-        reel.style.transform="rotateX(1800deg)";
-        setTimeout(()=>{
-            reel.innerText=symbol;
-            reel.style.transform="rotateX(0deg)";
-        },1500);
-    },delay);
+function checkWin(){
+    let results=[];
+    reels.forEach(id=>{
+        let reel=document.getElementById(id);
+        let pos=Math.round(Math.abs(parseInt(reel.style.transform.replace(/[^\d]/g,'')))/120);
+        let symbol=reel.children[pos].innerText;
+        results.push(symbol);
+    });
+
+    let win=0;
+    if(results[0]==="7️⃣"&&results[1]==="7️⃣"&&results[2]==="7️⃣") win=3000;
+    else if(results[0]==="💎"&&results[1]==="💎"&&results[2]==="💎") win=2000;
+    else if(results[0]===results[1]&&results[1]===results[2]) win=800;
+    else if(results[0]===results[1]||results[1]===results[2]||results[0]===results[2]) win=200;
+
+    if(win>0){
+        coins+=win;
+        document.querySelectorAll(".reel").forEach(r=>r.classList.add("win"));
+        setTimeout(()=>document.querySelectorAll(".reel").forEach(r=>r.classList.remove("win")),2000);
+        alert("🎉 Выигрыш: "+win);
+    }
+
+    update();
 }
 
-function calc(a,b,c){
-    if(a==="7️⃣"&&b==="7️⃣"&&c==="7️⃣") return 3000;
-    if(a==="💎"&&b==="💎"&&c==="💎") return 2000;
-    if(a===b&&b===c) return 800;
-    if(a===b||a===c||b===c) return 200;
-    return 0;
-}
-
-function random(){ return symbols[Math.floor(Math.random()*symbols.length)]; }
-
-/* WHEEL */
-function spinWheel(){
-    let wheel=document.getElementById("wheel");
-    let rotation=360*10+Math.random()*360;
-    wheel.style.transform="rotate("+rotation+"deg)";
-    play(300);
-
-    let reward=[0,200,500,1000,2000,5000][Math.floor(Math.random()*6)];
-
-    setTimeout(()=>{
-        coins+=reward;
-        confetti();
-        play(800);
-        if(reward>=2000) showJackpot();
-        alert("🎡 Выигрыш: "+reward);
-        save(); updateUI();
-    },6000);
-}
-
-function showJackpot(){
-    let j=document.getElementById("jackpot");
-    j.style.display="flex";
-    setTimeout(()=>j.style.display="none",3000);
-}
-
-function updateUI(){
+function update(){
     document.getElementById("coins").innerText=coins;
-}
-
-function save(){
     localStorage.setItem("coins",coins);
 }
 </script>

@@ -2,75 +2,142 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SPIN ZONE</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-body {
+body{
     margin:0;
-    font-family:Arial, sans-serif;
-    background: linear-gradient(135deg, #000000, #1a1a1a);
+    font-family:Arial;
+    background:linear-gradient(135deg,#0f0f1f,#1a0033);
     color:white;
     text-align:center;
+    overflow:hidden;
 }
-.container {
-    padding:20px;
-}
-.logo {
+
+h1{
+    margin-top:20px;
     font-size:32px;
-    font-weight:bold;
-    margin-top:20px;
+    background:linear-gradient(90deg,gold,orange);
+    -webkit-background-clip:text;
+    color:transparent;
 }
-.balance {
-    margin:20px;
-    font-size:20px;
-}
-button {
-    background:gold;
-    border:none;
-    padding:15px 30px;
-    font-size:18px;
-    border-radius:10px;
-    cursor:pointer;
-    font-weight:bold;
-}
-.result {
-    margin-top:20px;
+
+.balance{
     font-size:22px;
+    margin:15px;
+    padding:10px;
+    border-radius:15px;
+    background:rgba(255,255,255,0.1);
+    backdrop-filter:blur(10px);
+    display:inline-block;
 }
+
+#slot{
+    font-size:60px;
+    margin:30px;
+    transition:transform 0.2s;
+}
+
+button{
+    padding:15px 40px;
+    font-size:20px;
+    border:none;
+    border-radius:30px;
+    background:linear-gradient(45deg,gold,orange);
+    color:black;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow:0 0 20px gold;
+    transition:0.2s;
+}
+
+button:hover{
+    transform:scale(1.1);
+}
+
+.level{
+    margin-top:15px;
+    font-size:18px;
+}
+
+.win{
+    animation:flash 0.5s alternate infinite;
+}
+
+@keyframes flash{
+    from{transform:scale(1)}
+    to{transform:scale(1.2)}
+}
+
 </style>
 </head>
+
 <body>
 
-<div class="container">
-    <div class="logo">? SPIN ZONE ?</div>
-    <div class="balance">??????: <span id="coins">1000</span> ?</div>
-    <button onclick="spin()">? ??????? (100)</button>
-    <div class="result" id="result"></div>
+<h1>🎰 SPIN ZONE</h1>
+
+<div class="balance">💰 Баланс: <span id="coins">1000</span></div>
+
+<div id="slot">🎲</div>
+
+<button onclick="spin()">SPIN</button>
+
+<div class="level">
+🏆 Уровень: <span id="level">Bronze</span>
 </div>
 
 <script>
 let coins = 1000;
+let xp = 0;
 
-function spin() {
-    if (coins < 100) {
-        document.getElementById("result").innerText = "???????????? ?????!";
+const emojis = ["🍒","🍋","💎","🔥","👑","🎰"];
+
+function spin(){
+    if(coins < 50){
+        alert("Недостаточно монет!");
         return;
     }
 
-    coins -= 100;
-
-    let winChance = Math.random();
-
-    if (winChance > 0.6) {
-        let win = Math.floor(Math.random() * 500) + 100;
-        coins += win;
-        document.getElementById("result").innerText = "? ?? ???????? " + win + " ?!";
-    } else {
-        document.getElementById("result").innerText = "? ?? ????????? 100 ?";
-    }
-
+    coins -= 50;
     document.getElementById("coins").innerText = coins;
+
+    let interval = setInterval(()=>{
+        document.getElementById("slot").innerText =
+        emojis[Math.floor(Math.random()*emojis.length)];
+    },100);
+
+    setTimeout(()=>{
+        clearInterval(interval);
+
+        let result = emojis[Math.floor(Math.random()*emojis.length)];
+        document.getElementById("slot").innerText = result;
+
+        let win = Math.random();
+
+        if(win > 0.7){
+            let reward = Math.floor(Math.random()*300)+100;
+            coins += reward;
+            xp += 10;
+            document.getElementById("coins").innerText = coins;
+            document.getElementById("slot").classList.add("win");
+            setTimeout(()=>{
+                document.getElementById("slot").classList.remove("win");
+            },1000);
+            alert("🔥 ВЫИГРЫШ +"+reward+" монет!");
+        }
+
+        updateLevel();
+
+    },2000);
+}
+
+function updateLevel(){
+    let lvl = "Bronze";
+    if(xp >= 50) lvl = "Silver";
+    if(xp >= 100) lvl = "Gold";
+    if(xp >= 200) lvl = "Diamond";
+    document.getElementById("level").innerText = lvl;
 }
 </script>
 
